@@ -1133,7 +1133,7 @@ discover_capabilities(struct pqos_cap **p_cap,
         /**
          * Memory bandwidth allocation init
          */
-        ret = discover_alloc_mba(&det_mba);
+        ret = v_def->discover_alloc_mba(&det_mba);
         switch (ret) {
         case PQOS_RETVAL_OK:
                 LOG_INFO("MBA capability detected\n");
