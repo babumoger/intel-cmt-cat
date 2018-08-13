@@ -1493,6 +1493,104 @@ os_mba_set(const unsigned socket,
 }
 
 int
+os_mba_set_amd(const unsigned socket,
+	       const unsigned num_cos,
+	       const struct pqos_mba *requested,
+	       struct pqos_mba *actual)
+{
+	int ret;
+	unsigned sockets_num = 0;
+	unsigned *sockets = NULL;
+	unsigned i, num_grps = 0;
+	const struct pqos_capability *mba_cap = NULL;
+
+	ASSERT(requested != NULL);
+	ASSERT(num_cos != 0);
+	ASSERT(m_cap != NULL);
+	ASSERT(m_cpu != NULL);
+
+	/**
+	 * Check if MBA is supported
+	 */
+	ret = pqos_cap_get_type(m_cap, PQOS_CAP_TYPE_MBA, &mba_cap);
+	if (ret != PQOS_RETVAL_OK)
+		return PQOS_RETVAL_RESOURCE; /* MBA not supported */
+
+	ret = resctrl_alloc_get_grps_num(m_cap, &num_grps);
+	if (ret != PQOS_RETVAL_OK)
+		return ret;
+
+	if (num_cos > num_grps)
+		return PQOS_RETVAL_PARAM;
+
+        /**
+	 * Check if class id's are within allowed range.
+	 */
+	for (i = 0; i < num_cos; i++)
+		if (requested[i].class_id >= num_grps) {
+			LOG_ERROR("MBA COS%u is out of range (COS%u is max)!\n",
+			          requested[i].class_id, num_grps - 1);
+			return PQOS_RETVAL_PARAM;
+		}
+
+	/* Get number of sockets in the system */
+	sockets = pqos_cpu_get_sockets(m_cpu, &sockets_num);
+	if (sockets == NULL || sockets_num == 0 || socket >= sockets_num) {
+		ret = PQOS_RETVAL_ERROR;
+		goto os_l3ca_set_exit;
+	}
+
+        ret = resctrl_lock_exclusive();
+        if (ret != PQOS_RETVAL_OK)
+                goto os_l3ca_set_exit;
+
+	for (i = 0; i < num_cos; i++) {
+		struct resctrl_alloc_schemata schmt;
+
+		ret = resctrl_alloc_schemata_init(requested[i].class_id,
+		                                  m_cap, m_cpu, &schmt);
+
+		/* read schemata file */
+		if (ret == PQOS_RETVAL_OK)
+			ret = resctrl_alloc_schemata_read(requested[i].class_id,
+				                          &schmt);
+
+		/* update and write schemata */
+		if (ret == PQOS_RETVAL_OK) {
+			struct pqos_mba *mba = &(schmt.mba[socket]);
+
+			*mba = requested[i];
+			ret = resctrl_alloc_schemata_write(
+				requested[i].class_id, &schmt);
+		}
+
+		if (actual != NULL) {
+			/* read actual schemata */
+			if (ret == PQOS_RETVAL_OK)
+				ret = resctrl_alloc_schemata_read(
+					requested[i].class_id, &schmt);
+
+			/* update actual schemata */
+			if (ret == PQOS_RETVAL_OK)
+				actual[i] = schmt.mba[socket];
+		}
+		resctrl_alloc_schemata_fini(&schmt);
+
+		if (ret != PQOS_RETVAL_OK)
+			goto os_l3ca_set_unlock;
+	}
+
+ os_l3ca_set_unlock:
+        resctrl_lock_release();
+
+ os_l3ca_set_exit:
+	if (sockets != NULL)
+		free(sockets);
+
+	return ret;
+}
+
+int
 os_mba_get(const unsigned socket,
            const unsigned max_num_cos,
            unsigned *num_cos,

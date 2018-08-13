@@ -253,6 +253,22 @@ int os_mba_set(const unsigned socket,
                const unsigned num_cos,
                const struct pqos_mba *requested,
                struct pqos_mba *actual);
+/**
+ * @brief OS interface to set classes of service
+ *        defined by \a mba on \a socket
+ *
+ * @param [in]  socket CPU socket id
+ * @param [in]  num_cos number of classes of service at \a ca
+ * @param [in]  requested table with class of service definitions
+ * @param [out] actual table with class of service definitions
+ *
+ * @return Operations status
+ * @retval PQOS_RETVAL_OK on success
+ */
+int os_mba_set_amd(const unsigned socket,
+		   const unsigned num_cos,
+		   const struct pqos_mba *requested,
+		   struct pqos_mba *actual);
 
 /**
  * @brief OS interface to read MBA from \a socket
