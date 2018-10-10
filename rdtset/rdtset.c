@@ -578,6 +578,11 @@ main(int argc, char **argv)
 
 	memset(&g_cfg, 0, sizeof(g_cfg));
 
+        ret = rdtset_init();
+        if (ret < 0)
+                exit(EXIT_FAILURE);
+
+
 	/* Parse cmd line args */
 	ret = parse_args(argc, argv);
 	if (ret != 0) {
@@ -607,10 +612,6 @@ main(int argc, char **argv)
 		print_cmd_line_rdt_config();
 		print_cmd_line_cpu_config();
 	}
-
-        ret = rdtset_init();
-        if (ret < 0)
-                exit(EXIT_FAILURE);
 
 	/* reset COS association */
 	if (0 != CPU_COUNT(&g_cfg.reset_cpuset)) {
