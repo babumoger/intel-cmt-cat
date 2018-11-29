@@ -1000,7 +1000,7 @@ get_socket_cores(const cpu_set_t *cores, const unsigned socket_id,
 	}
 
 	for (i = 0, *core_num = 0; i < m_cpu->num_cores; i++) {
-		if (m_cpu->cores[i].socket != socket_id ||
+		if (m_cpu->cores[i].res_id != socket_id ||
                     0 == CPU_ISSET(m_cpu->cores[i].lcore, cores))
 			continue;
 
@@ -1193,7 +1193,7 @@ cfg_configure_cos(const struct pqos_l2ca *l2ca, const struct pqos_l3ca *l3ca,
 
 	/* Configure COS */
 	if (m_cap_l3ca != NULL && m_cap_l3ca->u.l3ca->num_classes > cos_id) {
-		const unsigned socket_id = ci->socket;
+		const unsigned socket_id = ci->res_id;
 		struct pqos_l3ca ca = *l3ca;
 
 		/* if COS is not configured, set it to default */
@@ -1232,7 +1232,7 @@ cfg_configure_cos(const struct pqos_l2ca *l2ca, const struct pqos_l3ca *l3ca,
 	}
 
 	if (m_cap_mba != NULL && m_cap_mba->u.mba->num_classes > cos_id) {
-		const unsigned socket_id = ci->socket;
+		const unsigned socket_id = ci->res_id;
 		struct pqos_mba mba_requested = *mba;
 		struct pqos_mba mba_actual;
 
