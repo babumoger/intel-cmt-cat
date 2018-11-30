@@ -429,7 +429,10 @@ detect_cpu(const int cpu,
 	 * The schemata resource boundary could be different than the
 	 * socket id in some cases. This could also be l3_id.
 	 */
-        info->res_id = info->socket;
+	if (is_amd())
+		info->res_id = info->l3_id;
+	else
+		info->res_id = info->socket;
 
         LOG_DEBUG("Detected core %u, socket %u, "
                   "L2 ID %u, L3 ID %u, APICID %u\n",
@@ -524,6 +527,15 @@ void __attribute__((weak)) alloc_print_config (const struct pqos_capability *cap
 					       const struct pqos_cpuinfo *cpu_info,
 					       const int verbose);
 
+void __attribute__((weak)) alloc_print_config_amd(const struct pqos_capability *cap_mon,
+					       const struct pqos_capability *cap_l3ca,
+					       const struct pqos_capability *cap_l2ca,
+					       const struct pqos_capability *cap_mba,
+					       const unsigned sock_count,
+					       const unsigned *sockets,
+					       const struct pqos_cpuinfo *cpu_info,
+					       const int verbose);
+
 /**
  * Initialize pointers for the vendors
  */
@@ -536,15 +548,31 @@ init_functions(struct pqos_vendor_config **ptr)
                 return -EFAULT;
         }
 
-	(*ptr)->cpuid_cache_leaf = 4;
-	(*ptr)->default_mba = PQOS_MBA_LINEAR_MAX;
-	(*ptr)->mba_msr_reg = PQOS_MSR_MBA_MASK_START;
-	(*ptr)->hw_mba_get = hw_mba_get;
-	(*ptr)->hw_mba_set = hw_mba_set;
-	(*ptr)->os_mba_get = os_mba_get;
-	(*ptr)->os_mba_set = os_mba_set;
-	(*ptr)->discover_alloc_mba = discover_alloc_mba;
-	(*ptr)->alloc_print_config = alloc_print_config;
+	/**
+	 * Make sure to initialize all the pointers to avoid
+	 * NULL check while calling
+	 */
+	if (is_intel()) {
+		(*ptr)->cpuid_cache_leaf = 4;
+		(*ptr)->default_mba = PQOS_MBA_LINEAR_MAX;
+		(*ptr)->mba_msr_reg = PQOS_MSR_MBA_MASK_START;
+		(*ptr)->hw_mba_get = hw_mba_get;
+		(*ptr)->hw_mba_set = hw_mba_set;
+		(*ptr)->os_mba_get = os_mba_get;
+		(*ptr)->os_mba_set = os_mba_set;
+		(*ptr)->discover_alloc_mba = discover_alloc_mba;
+		(*ptr)->alloc_print_config = alloc_print_config;
+	} else if (is_amd()) {
+		(*ptr)->cpuid_cache_leaf = 0x8000001D;
+		(*ptr)->default_mba = PQOS_MBA_MAX_AMD;
+		(*ptr)->mba_msr_reg = PQOS_MSR_MBA_MASK_START_AMD;
+		(*ptr)->hw_mba_get = hw_mba_get_amd;
+		(*ptr)->hw_mba_set = hw_mba_set_amd;
+		(*ptr)->os_mba_get = os_mba_get_amd;
+		(*ptr)->os_mba_set = os_mba_set_amd;
+		(*ptr)->discover_alloc_mba = discover_alloc_mba_amd;
+		(*ptr)->alloc_print_config = alloc_print_config_amd;
+	}
 
         return 0;
 }
