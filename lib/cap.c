@@ -993,7 +993,7 @@ discover_alloc_l2(struct pqos_cap_l2ca **r_cap,
  * @return Operation status
  * @retval PQOS_RETVAL_OK success
  */
-static int
+int
 discover_alloc_mba(struct pqos_cap_mba **r_cap)
 {
         struct cpuid_out res;

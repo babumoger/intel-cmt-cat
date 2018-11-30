@@ -112,6 +112,17 @@ extern "C" {
 #define PQOS_MSR_MON_EVTSEL_EVTID_MASK ((1ULL << 8) - 1ULL)
 
 /**
+ * @brief Discovers MBA
+ *
+ * @param r_cap place to store MBA capabilities structure
+ *
+ * @return Operation status
+ * @retval PQOS_RETVAL_OK success
+ */
+int discover_alloc_mba(struct pqos_cap_mba **r_cap);
+
+
+/**
  * MSR's to read instructions retired, unhalted cycles,
  * LLC references and LLC misses.
  * These MSR's are needed to calculate IPC (instructions per clock) and
