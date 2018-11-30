@@ -60,6 +60,12 @@
 #include "allocation.h"
 
 /**
+ * This variables provides information about the vendor
+ */
+static int genuine_intel = 0;
+static int authentic_amd = 0;
+
+/**
  * This structure will be made externally available
  * If not NULL then module is initialized.
  */
@@ -84,6 +90,34 @@ struct apic_info {
         uint32_t l2_shift;      /**< bits to shift to get L2 ID */
         uint32_t l3_shift;      /**< bits to shift to get L3 ID */
 };
+
+int is_intel(void)
+{
+	return genuine_intel;
+}
+
+int is_amd(void)
+{
+        return authentic_amd;
+}
+
+int detect_vendor(void)
+{
+	int ret = 0;
+	struct cpuid_out vendor;
+
+	lcpuid(0x0, 0x0, &vendor);
+	if (vendor.ebx == 0x756e6547 && vendor.edx == 0x49656e69 &&
+	    vendor.ecx == 0x6c65746e) {
+		genuine_intel = 1;
+	} else if (vendor.ebx == 0x68747541 && vendor.edx == 0x69746E65 &&
+		   vendor.ecx ==   0x444D4163) {
+		authentic_amd = 1;
+	} else {
+		ret = -EFAULT;
+	}
+	return ret;
+}
 
 /**
  * Own typedef to simplify dealing with cpu set differences.
