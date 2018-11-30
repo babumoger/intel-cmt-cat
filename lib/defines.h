@@ -123,6 +123,42 @@ int discover_alloc_mba(struct pqos_cap_mba **r_cap);
 
 
 /**
+ * PQoS vendor value and function pointers
+ * @param cpuid_cache_leaf	: Cache mask leaf
+ * @param default_mba 		: default memory bandwidth
+ * @param mba_msr_reg 		: MBA mask base register
+ * @param hw_mba_get  		: Get MBA mask
+ * @param hw_mba_set  		: Set MBA mask with MSR method
+ * @param os_mba_set  		: Set MBA mask with OS method
+ * @param discover_alloc_mba 	: Discover support for MBA
+ * @param alloc_print_config	: print the configuration details
+ */
+struct pqos_vendor_config {
+	int cpuid_cache_leaf;
+	unsigned default_mba;
+	uint32_t mba_msr_reg;
+	int (*hw_mba_get) (const unsigned socket, const unsigned max_num_cos,
+			   unsigned *num_cos, struct pqos_mba *mba_tab);
+	int (*hw_mba_set) (const unsigned socket, const unsigned num_cos,
+			   const struct pqos_mba *requested,
+			   struct pqos_mba *actual);
+	int (*os_mba_get) (const unsigned socket, const unsigned max_num_cos,
+			   unsigned *num_cos, struct pqos_mba *mba_tab);
+	int (*os_mba_set) (const unsigned socket, const unsigned num_cos,
+			   const struct pqos_mba *requested,
+			   struct pqos_mba *actual);
+	int (*discover_alloc_mba) (struct pqos_cap_mba **r_cap);
+	void (*alloc_print_config) (const struct pqos_capability *cap_mon,
+				    const struct pqos_capability *cap_l3ca,
+				    const struct pqos_capability *cap_l2ca,
+				    const struct pqos_capability *cap_mba,
+				    const unsigned sock_count,
+				    const unsigned *sockets,
+				    const struct pqos_cpuinfo *cpu_info,
+				    const int verbose);
+};
+
+/**
  * MSR's to read instructions retired, unhalted cycles,
  * LLC references and LLC misses.
  * These MSR's are needed to calculate IPC (instructions per clock) and
