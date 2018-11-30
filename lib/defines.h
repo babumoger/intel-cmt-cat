@@ -136,6 +136,16 @@ struct pqos_vendor_config *v_def;
  */
 int discover_alloc_mba(struct pqos_cap_mba **r_cap);
 
+/**
+ * @brief Discovers MBA feature for AMD
+ *
+ * @param r_cap place to store MBA capabilities structure
+ *
+ * @return Operation status
+ * @retval PQOS_RETVAL_OK success
+ */
+int discover_alloc_mba_amd(struct pqos_cap_mba **r_cap);
+
 
 /**
  * PQoS vendor value and function pointers

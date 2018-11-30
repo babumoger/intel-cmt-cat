@@ -1055,6 +1055,62 @@ discover_alloc_mba(struct pqos_cap_mba **r_cap)
 }
 
 /**
+ * @brief Discovers MBA feature for AMD
+ *
+ * @param r_cap place to store MBA capabilities structure
+ *
+ * @return Operation status
+ * @retval PQOS_RETVAL_OK success
+ */
+int
+discover_alloc_mba_amd(struct pqos_cap_mba **r_cap)
+{
+	struct cpuid_out res;
+	struct pqos_cap_mba *cap = NULL;
+	const unsigned sz = sizeof(*cap);
+	int ret = PQOS_RETVAL_OK;
+
+	cap = (struct pqos_cap_mba *)malloc(sz);
+	if (cap == NULL)
+		return PQOS_RETVAL_RESOURCE;
+
+	ASSERT(cap != NULL);
+
+	memset(cap, 0, sz);
+	cap->mem_size = sz;
+
+	/**
+	 * Run CPUID.0x80000008.0 to check
+	 * for MBA allocation capability (bit 6 of ebx)
+	 */
+	lcpuid(0x80000008, 0x0, &res);
+	if (!(res.ebx & (1 << 6))) {
+		LOG_INFO("CPUID.0x80000008.0: MBA not supported\n");
+		free(cap);
+		return PQOS_RETVAL_RESOURCE;
+	}
+
+	/**
+	 * We can go to CPUID.0x10.0 to obtain more info
+	 */
+	lcpuid(0x80000020, 0x0, &res);
+	if (!(res.ebx & (1 << 1))) {
+		LOG_INFO("CPUID 0x10.0: MBA not supported!\n");
+		free(cap);
+		return PQOS_RETVAL_RESOURCE;
+	}
+
+	lcpuid(0x80000020, 1, &res);
+
+	cap->num_classes = (res.edx & 0xffff) + 1;
+
+	LOG_INFO("MBA details: " "#COS=%u\n", cap->num_classes);
+
+	(*r_cap) = cap;
+	return ret;
+}
+
+/**
  * @brief Runs detection of platform monitoring and allocation capabilities
  *
  * @param p_cap place to store allocated capabilities structure
