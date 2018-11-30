@@ -70,6 +70,15 @@ int cpuinfo_init(const struct pqos_cpuinfo **topology);
  */
 int cpuinfo_fini(void);
 
+/**
+ * @brief provides intel/amd vendor confirmation
+ *
+ * @param
+ * @return Operation status
+ * @retval Success returns 0
+ */
+int init_functions(struct pqos_vendor_config **ptr);
+
 #ifdef __cplusplus
 }
 #endif
