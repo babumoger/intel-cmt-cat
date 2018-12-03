@@ -46,6 +46,7 @@
 #include "mba_sc.h"
 #include "rdt.h"
 #include "cpu.h"
+#include "defines.h"
 
 static const struct pqos_cap *m_cap;
 static const struct pqos_cpuinfo *m_cpu;
@@ -160,7 +161,7 @@ rdt_cfg_is_valid(const struct rdt_cfg cfg)
 
 	case PQOS_CAP_TYPE_MBA:
 		return cfg.u.mba != NULL && cfg.u.mba->mb_max > 0 &&
-			cfg.u.mba->mb_max <= 100;
+			cfg.u.mba->mb_max <= PQOS_MBA_LINEAR_MAX;
 
 	default:
 		break;
@@ -434,7 +435,7 @@ rdt_mba_str_to_rate(const char *param, struct rdt_cfg mba)
 		return -EINVAL;
 
 	ret = str_to_uint64(param, 10, &rate);
-	if (ret < 0 || rate == 0 || rate > 100)
+	if (ret < 0 || rate == 0 || rate > PQOS_MBA_LINEAR_MAX)
 		return -EINVAL;
 
 	mba.u.mba->mb_max = rate;
@@ -1141,7 +1142,7 @@ alloc_get_default_cos(struct pqos_l2ca *l2_def, struct pqos_l3ca *l3_def,
 
 	if (m_cap_mba != NULL && mba_def != NULL) {
 		memset(mba_def, 0, sizeof(*mba_def));
-		mba_def->mb_max = 100;
+		mba_def->mb_max = PQOS_MBA_LINEAR_MAX;
 	}
 
 	return 0;
