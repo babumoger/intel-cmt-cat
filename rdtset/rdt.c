@@ -161,7 +161,7 @@ rdt_cfg_is_valid(const struct rdt_cfg cfg)
 
 	case PQOS_CAP_TYPE_MBA:
 		return cfg.u.mba != NULL && cfg.u.mba->mb_max > 0 &&
-			cfg.u.mba->mb_max <= PQOS_MBA_LINEAR_MAX;
+			cfg.u.mba->mb_max <= v_def->default_mba;
 
 	default:
 		break;
@@ -435,7 +435,7 @@ rdt_mba_str_to_rate(const char *param, struct rdt_cfg mba)
 		return -EINVAL;
 
 	ret = str_to_uint64(param, 10, &rate);
-	if (ret < 0 || rate == 0 || rate > PQOS_MBA_LINEAR_MAX)
+	if (ret < 0 || rate == 0 || rate > v_def->default_mba)
 		return -EINVAL;
 
 	mba.u.mba->mb_max = rate;
@@ -1142,7 +1142,7 @@ alloc_get_default_cos(struct pqos_l2ca *l2_def, struct pqos_l3ca *l3_def,
 
 	if (m_cap_mba != NULL && mba_def != NULL) {
 		memset(mba_def, 0, sizeof(*mba_def));
-		mba_def->mb_max = PQOS_MBA_LINEAR_MAX;
+		mba_def->mb_max = v_def->default_mba;
 	}
 
 	return 0;
