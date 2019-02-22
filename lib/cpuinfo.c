@@ -349,7 +349,7 @@ detect_apic_masks(struct apic_info *apic)
         if (detect_apic_core_masks(apic) != 0)
                 return -2;
 
-        if (detect_apic_cache_masks(apic, 4) != 0)
+        if (detect_apic_cache_masks(apic, v_def->cpuid_cache_leaf) != 0)
                 return -3;
 
         return 0;
