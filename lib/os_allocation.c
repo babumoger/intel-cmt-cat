@@ -49,6 +49,7 @@
 #include "resctrl.h"
 #include "resctrl_alloc.h"
 #include "resctrl_monitoring.h"
+#include "cpu_registers.h"
 
 /**
  * ---------------------------------------
@@ -503,7 +504,7 @@ os_alloc_reset_schematas(const struct pqos_cap_l3ca *l3_cap,
                          const struct pqos_cap_l2ca *l2_cap,
                          const struct pqos_cap_mba *mba_cap)
 {
-	uint32_t default_mba = 100;
+	uint32_t default_mba = PQOS_MBA_LINEAR_MAX;
 	uint64_t default_l3ca = 0;
 	uint64_t default_l2ca = 0;
 	unsigned grps;
