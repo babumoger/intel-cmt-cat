@@ -47,6 +47,7 @@
 #include "pqos.h"
 #include "types.h"
 #include "utils.h"
+#include "machine.h"
 
 #define TOPO_OBJ_SOCKET     0
 #define TOPO_OBJ_L2_CLUSTER 2
@@ -546,4 +547,22 @@ pqos_mba_ctrl_enabled(const struct pqos_cap *cap,
                 *ctrl_enabled = mba_cap->u.mba->ctrl_on;
 
         return PQOS_RETVAL_OK;
+}
+
+int
+pqos_detect_vendor(void)
+{
+        int ret = PQOS_VENDOR_UNKNOWN;
+        struct cpuid_out vendor;
+
+        lcpuid(0x0, 0x0, &vendor);
+        if (vendor.ebx == 0x756e6547 && vendor.edx == 0x49656e69 &&
+            vendor.ecx == 0x6c65746e) {
+                ret = PQOS_VENDOR_INTEL;
+        } else if (vendor.ebx == 0x68747541 && vendor.edx == 0x69746E65 &&
+                   vendor.ecx ==   0x444D4163) {
+                ret = PQOS_VENDOR_AMD;
+        }
+
+        return ret;
 }
