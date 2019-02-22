@@ -1353,7 +1353,7 @@ cfg_configure_cos(const struct pqos_l2ca *l2ca, const struct pqos_l3ca *l3ca,
 		if (!rdt_cfg_is_valid(wrap_mba(&mba_requested)))
 			mba_requested = mba_defs;
 		else if (mba_sc_mode()) {
-			mba_requested.mb_max = MBA_SC_DEF_INIT_MBA;
+			mba_requested.mb_max = PQOS_MBA_LINEAR_MAX;
 			mba_requested.ctrl = 0;
 		}
 
