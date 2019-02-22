@@ -90,14 +90,14 @@ pqos_cpu_get_sockets(const struct pqos_cpuinfo *cpu,
                  * Check if this socket id is already on the \a sockets list
                  */
                 for (j = 0; j < scount && scount > 0; j++)
-                        if (cpu->cores[i].socket == sockets[j])
+                        if (cpu->cores[i].cache_id == sockets[j])
                                 break;
 
                 if (j >= scount || scount == 0) {
                         /**
                          * This socket wasn't reported before
                          */
-                        sockets[scount++] = cpu->cores[i].socket;
+                        sockets[scount++] = cpu->cores[i].cache_id;
                 }
         }
 
@@ -180,7 +180,7 @@ __get_cores_per_topology_obj(const struct pqos_cpuinfo *cpu,
                      id == cpu->cores[i].l3_id) ||
                     (type == TOPO_OBJ_L2_CLUSTER &&
                      id == cpu->cores[i].l2_id) ||
-                    (type == TOPO_OBJ_SOCKET && id == cpu->cores[i].socket))
+                    (type == TOPO_OBJ_SOCKET && id == cpu->cores[i].cache_id))
                         core_list[num++] = cpu->cores[i].lcore;
 
         if (num == 0) {
@@ -219,7 +219,7 @@ pqos_cpu_get_cores(const struct pqos_cpuinfo *cpu,
                 return NULL;
 
         for (i = 0; i < cpu->num_cores; i++)
-                if (cpu->cores[i].socket == socket)
+                if (cpu->cores[i].cache_id == socket)
                         cores[cnt++] = cpu->cores[i].lcore;
 
         if (!cnt) {
@@ -262,7 +262,7 @@ pqos_cpu_get_one_core(const struct pqos_cpuinfo *cpu,
                 return PQOS_RETVAL_PARAM;
 
         for (i = 0; i < cpu->num_cores; i++)
-                if (cpu->cores[i].socket == socket) {
+                if (cpu->cores[i].cache_id == socket) {
                         *lcore = cpu->cores[i].lcore;
                         return PQOS_RETVAL_OK;
                 }
@@ -321,7 +321,7 @@ pqos_cpu_get_socketid(const struct pqos_cpuinfo *cpu,
 
         for (i = 0; i < cpu->num_cores; i++)
                 if (cpu->cores[i].lcore == lcore) {
-                        *socket = cpu->cores[i].socket;
+                        *socket = cpu->cores[i].cache_id;
                         return PQOS_RETVAL_OK;
                 }
 

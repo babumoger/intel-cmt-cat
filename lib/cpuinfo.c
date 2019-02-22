@@ -386,6 +386,12 @@ detect_cpu(const int cpu,
         info->l3_id = apicid >> apic->l3_shift;
         info->l2_id = apicid >> apic->l2_shift;
 
+	/*
+	 * The schemata resource boundary could be different than the
+	 * socket id in some cases. This could also be l3_id.
+	 */
+        info->cache_id = info->socket;
+
         LOG_DEBUG("Detected core %u, socket %u, "
                   "L2 ID %u, L3 ID %u, APICID %u\n",
                   info->lcore, info->socket,

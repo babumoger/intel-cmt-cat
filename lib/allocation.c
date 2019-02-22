@@ -216,8 +216,8 @@ get_unused_cos(const unsigned id,
                         if (m_cpu->cores[i].l2_id != id)
                                 continue;
                 } else {
-                        /* L2 not requested so looking at socket scope */
-                        if (m_cpu->cores[i].socket != id)
+                        /* L2 not requested so looking at socket or l3 scope */
+                        if (m_cpu->cores[i].cache_id != id)
                                 continue;
                 }
 
@@ -1114,11 +1114,11 @@ hw_alloc_assign(const unsigned technology,
                         }
                         l2id = pi->l2_id;
                 } else {
-                        if (i != 0 && socket != pi->socket) {
+                        if (i != 0 && socket != pi->cache_id) {
                                 ret = PQOS_RETVAL_PARAM;
                                 goto pqos_alloc_assign_exit;
                         }
-                        socket = pi->socket;
+                        socket = pi->cache_id;
                 }
         }
 
