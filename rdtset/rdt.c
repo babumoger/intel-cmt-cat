@@ -47,6 +47,9 @@
 #include "rdt.h"
 #include "cpu.h"
 
+/* 0 for Intel, 1 for AMD and 2 if unknown */
+static int vendor;
+
 static const struct pqos_cap *m_cap;
 static const struct pqos_cpuinfo *m_cpu;
 static const struct pqos_capability *m_cap_l2ca;
@@ -160,8 +163,9 @@ rdt_cfg_is_valid(const struct rdt_cfg cfg)
 
 	case PQOS_CAP_TYPE_MBA:
 		return cfg.u.mba != NULL && cfg.u.mba->mb_max > 0 &&
-			((cfg.u.mba->ctrl == 0 && cfg.u.mba->mb_max <= PQOS_MBA_LINEAR_MAX) ||
-			cfg.u.mba->ctrl == 1);
+			((cfg.u.mba->ctrl == 0 && cfg.u.mba->mb_max <=
+			  ((vendor == PQOS_VENDOR_AMD) ? PQOS_MBA_MAX_AMD : PQOS_MBA_LINEAR_MAX)) ||
+			 cfg.u.mba->ctrl == 1);
 
 	default:
 		break;
@@ -435,7 +439,8 @@ rdt_mba_str_to_rate(const char *param, struct rdt_cfg mba)
 		return -EINVAL;
 
 	ret = str_to_uint64(param, 10, &rate);
-	if (ret < 0 || rate == 0 || rate > PQOS_MBA_LINEAR_MAX)
+	if (ret < 0 || rate == 0 || rate >
+            ((vendor == PQOS_VENDOR_AMD) ? PQOS_MBA_MAX_AMD : PQOS_MBA_LINEAR_MAX))
 		return -EINVAL;
 
 	mba.u.mba->ctrl = 0;
@@ -1255,7 +1260,8 @@ alloc_get_default_cos(struct pqos_l2ca *l2_def, struct pqos_l3ca *l3_def,
 			mba_def->ctrl = 1;
 			mba_def->mb_max = UINT32_MAX;
 		} else
-			mba_def->mb_max = PQOS_MBA_LINEAR_MAX;
+			mba_def->mb_max = (vendor == PQOS_VENDOR_AMD) ?
+					PQOS_MBA_MAX_AMD : PQOS_MBA_LINEAR_MAX;
 	}
 
 	return 0;
@@ -1353,7 +1359,8 @@ cfg_configure_cos(const struct pqos_l2ca *l2ca, const struct pqos_l3ca *l3ca,
 		if (!rdt_cfg_is_valid(wrap_mba(&mba_requested)))
 			mba_requested = mba_defs;
 		else if (mba_sc_mode()) {
-			mba_requested.mb_max = PQOS_MBA_LINEAR_MAX;
+			mba_requested.mb_max = (vendor == PQOS_VENDOR_AMD) ?
+				               PQOS_MBA_MAX_AMD : PQOS_MBA_LINEAR_MAX;
 			mba_requested.ctrl = 0;
 		}
 
@@ -1726,6 +1733,9 @@ alloc_init(void)
 		fprintf(stderr, "Allocation: module already initialized!\n");
 		return -EEXIST;
 	}
+
+	/* Detect vendor */
+	vendor = pqos_detect_vendor();
 
 	/* PQoS Initialization - Check and initialize allocation capabilities */
 	memset(&cfg, 0, sizeof(cfg));

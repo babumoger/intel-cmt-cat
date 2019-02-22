@@ -154,7 +154,7 @@ struct pqos_vendor_config {
  * @return Operation status
  * @retval Success returns 0
  */
-int init_functions(struct pqos_vendor_config **ptr);
+int init_functions(struct pqos_vendor_config **ptr, int vendor);
 
 /**
  * MSR's to read instructions retired, unhalted cycles,

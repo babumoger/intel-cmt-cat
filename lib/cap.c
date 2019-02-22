@@ -1384,7 +1384,7 @@ pqos_init(const struct pqos_config *config)
         /**
          * Initialise vendor default values and function pointers
          */
-        ret = init_functions(&v_def);
+        ret = init_functions(&v_def, vendor);
         if (ret != 0) {
                 LOG_ERROR("init_pointers() error %d\n", ret);
                 ret = PQOS_RETVAL_ERROR;

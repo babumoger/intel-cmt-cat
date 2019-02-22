@@ -393,10 +393,17 @@ detect_cpu(const int cpu,
         info->l2_id = apicid >> apic->l2_shift;
 
 	/*
-	 * The schemata resource boundary could be different than the
-	 * socket id in some cases. This could also be l3_id.
+	 * Intel uses socket id to modify the schemata masks. AMD uses
+	 * l3_id to modify the schemata masks. This is really called as
+	 * cache_id. Look at
+	 * https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt
+	 * It is better to use cache_id as a common across both vendors.
+	 * Update the cache_id based on the vendor.
 	 */
-        info->cache_id = info->socket;
+	if (pqos_detect_vendor() == PQOS_VENDOR_AMD)
+		info->cache_id = info->l3_id;
+	else
+		info->cache_id = info->socket;
 
         LOG_DEBUG("Detected core %u, socket %u, "
                   "L2 ID %u, L3 ID %u, APICID %u\n",
@@ -481,7 +488,7 @@ cpuinfo_build_topo(void)
  * Initialize pointers for the vendors
  */
 int
-init_functions(struct pqos_vendor_config **ptr)
+init_functions(struct pqos_vendor_config **ptr, int vendor)
 {
         *ptr = malloc(sizeof(struct pqos_vendor_config));
         if (*ptr == NULL) {
@@ -489,13 +496,30 @@ init_functions(struct pqos_vendor_config **ptr)
                 return -EFAULT;
         }
 
-	(*ptr)->cpuid_cache_leaf = 4;
-	(*ptr)->default_mba = PQOS_MBA_LINEAR_MAX;
-	(*ptr)->mba_msr_reg = PQOS_MSR_MBA_MASK_START;
-	(*ptr)->hw_mba_get = hw_mba_get;
-	(*ptr)->hw_mba_set = hw_mba_set;
-	(*ptr)->os_mba_get = os_mba_get;
-	(*ptr)->os_mba_set = os_mba_set;
+	/**
+	 * Make sure to initialize all the pointers to avoid
+	 * NULL check while calling
+	 */
+	if (vendor == PQOS_VENDOR_INTEL) {
+		(*ptr)->cpuid_cache_leaf = 4;
+		(*ptr)->default_mba = PQOS_MBA_LINEAR_MAX;
+		(*ptr)->mba_msr_reg = PQOS_MSR_MBA_MASK_START;
+		(*ptr)->hw_mba_get = hw_mba_get;
+		(*ptr)->hw_mba_set = hw_mba_set;
+		(*ptr)->os_mba_get = os_mba_get;
+		(*ptr)->os_mba_set = os_mba_set;
+	} else if (vendor == PQOS_VENDOR_AMD) {
+		(*ptr)->cpuid_cache_leaf = 0x8000001D;
+		(*ptr)->default_mba = PQOS_MBA_MAX_AMD;
+		(*ptr)->mba_msr_reg = PQOS_MSR_MBA_MASK_START_AMD;
+		(*ptr)->hw_mba_get = hw_mba_get_amd;
+		(*ptr)->hw_mba_set = hw_mba_set_amd;
+		(*ptr)->os_mba_get = os_mba_get_amd;
+		(*ptr)->os_mba_set = os_mba_set_amd;
+	} else {
+                LOG_ERROR("init_pointers: init failed!");
+                return -EFAULT;
+	}
 
         return 0;
 }
