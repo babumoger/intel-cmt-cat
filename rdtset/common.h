@@ -52,6 +52,11 @@ extern "C" {
  */
 #define PQOS_MBA_LINEAR_MAX 100
 
+/**
+ * MBA max value for AMD
+ */
+#define PQOS_MBA_MAX_AMD 0x800
+
 #ifndef MIN
 /**
  * Macro to return the minimum of two numbers
