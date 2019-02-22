@@ -1161,6 +1161,234 @@ void alloc_print_config(const struct pqos_capability *cap_mon,
         }
 }
 
+static unsigned *
+cpu_get_actual_sockets(const struct pqos_cpuinfo *cpu,
+                     unsigned *count)
+{
+        unsigned scount = 0, i = 0;
+        unsigned *sockets = NULL;
+
+        ASSERT(cpu != NULL);
+        ASSERT(count != NULL);
+        if (cpu == NULL || count == NULL)
+                return NULL;
+
+        sockets = (unsigned *) malloc(sizeof(sockets[0]) * cpu->num_cores);
+        if (sockets == NULL)
+                return NULL;
+
+        for (i = 0; i < cpu->num_cores; i++) {
+                unsigned j = 0;
+
+                /**
+                 * Check if this socket id is already on the \a sockets list
+                 */
+                for (j = 0; j < scount && scount > 0; j++)
+                        if (cpu->cores[i].socket == sockets[j])
+                                break;
+
+                if (j >= scount || scount == 0) {
+                        /**
+                         * This socket wasn't reported before
+                         */
+                        sockets[scount++] = cpu->cores[i].socket;
+                }
+        }
+
+        *count = scount;
+        return sockets;
+}
+
+/**
+ * @brief Per socket L3 CAT and MBA class definition printing
+ *
+ * If new per socket technologies appear they should be added here, too.
+ *
+ * @param [in] cap_l3ca pointer to L3 CAT capability structure
+ * @param [in] cap_mba pointer to MBA capability structure
+ * @param [in] sock_count number of socket id's in \a sockets
+ * @param [in] sockets arrays of socket id's
+ */
+static void
+print_per_socket_config_amd(const struct pqos_cpuinfo *cpu_info,
+		            const struct pqos_capability *cap_l3ca,
+			    const struct pqos_capability *cap_mba)
+{
+        int ret;
+        unsigned i, sock_count = 0;
+	unsigned *sockets = NULL;
+
+        if (cap_l3ca == NULL && cap_mba == NULL)
+                return;
+
+	/* Get the actual CPU sockets(not the core complexes) */
+	sockets = cpu_get_actual_sockets(cpu_info, &sock_count);
+
+        for (i = 0; i < sock_count; i++) {
+
+                printf("%s%s%s COS definitions for Socket %u:\n",
+                       cap_l3ca != NULL ? "L3CA" : "",
+                       (cap_l3ca != NULL && cap_mba != NULL) ? "/" : "",
+                       cap_mba != NULL ? "MBA" : "",
+                       sockets[i]);
+
+                if (cap_l3ca != NULL) {
+                        const struct pqos_cap_l3ca *l3ca = cap_l3ca->u.l3ca;
+                        struct pqos_l3ca tab[l3ca->num_classes];
+                        unsigned num = 0;
+                        unsigned n = 0;
+
+                        ret = pqos_l3ca_get(sockets[i], l3ca->num_classes,
+                                            &num, tab);
+                        if (ret != PQOS_RETVAL_OK)
+                                num = l3ca->num_classes;
+
+                        for (n = 0; n < num; n++)
+                                print_l3ca_config(&tab[n],
+                                                  (ret != PQOS_RETVAL_OK));
+                }
+
+                if (cap_mba != NULL) {
+                        const struct pqos_cap_mba *mba = cap_mba->u.mba;
+                        struct pqos_mba tab[mba->num_classes];
+                        unsigned num = 0;
+                        unsigned n = 0;
+
+                        ret = pqos_mba_get(sockets[i], mba->num_classes,
+                                           &num, tab);
+                        if (ret != PQOS_RETVAL_OK)
+                                num = mba->num_classes;
+
+                        for (n = 0; n < num; n++) {
+                                if (ret != PQOS_RETVAL_OK)
+                                        printf("    MBA COS%u => ERROR\n",
+                                               tab[n].class_id);
+                                else
+                                        printf("    MBA COS%u => %u "
+                                               "available\n",
+                                               tab[n].class_id, tab[n].mb_max);
+                        }
+                }
+        }
+
+	if (sockets)
+		free(sockets);
+}
+
+void alloc_print_config_amd(const struct pqos_capability *cap_mon,
+			    const struct pqos_capability *cap_l3ca,
+			    const struct pqos_capability *cap_l2ca,
+			    const struct pqos_capability *cap_mba,
+			    const unsigned sock_count,
+			    const unsigned *sockets,
+			    const struct pqos_cpuinfo *cpu_info,
+			    const int verbose)
+{
+        int ret;
+        unsigned i;
+
+        print_per_socket_config_amd(cpu_info, cap_l3ca, cap_mba);
+
+        if (cap_l2ca != NULL) {
+                /* Print L2 CAT class definitions per L2 cluster */
+                unsigned *l2id, count = 0;
+
+                l2id = pqos_cpu_get_l2ids(cpu_info, &count);
+                if (l2id == NULL) {
+                        printf("Error retrieving information for L2\n");
+                        return;
+                }
+
+                for (i = 0; i < count; i++) {
+                        struct pqos_l2ca tab[PQOS_MAX_L2CA_COS];
+                        unsigned num = 0, n = 0;
+
+                        ret = pqos_l2ca_get(l2id[i], PQOS_MAX_L2CA_COS,
+                                            &num, tab);
+                        if (ret != PQOS_RETVAL_OK)
+                                continue;
+
+                        printf("L2CA COS definitions for L2ID %u:\n",
+                               l2id[i]);
+                        for (n = 0; n < num; n++)
+                                print_l2ca_config(&tab[n],
+                                                  (ret != PQOS_RETVAL_OK));
+                }
+                free(l2id);
+        }
+
+        /* Print core to class associations */
+        for (i = 0; i < sock_count; i++) {
+                unsigned *lcores = NULL;
+                unsigned lcount = 0, n = 0;
+
+                lcores = pqos_cpu_get_cores(cpu_info, sockets[i], &lcount);
+                if (lcores == NULL) {
+                        printf("Error retrieving core information!\n");
+                        return;
+                }
+                printf("Core information for core complex %u:\n",
+                       sockets[i]);
+                for (n = 0; n < lcount; n++) {
+                        const struct pqos_coreinfo *core_info = NULL;
+
+                        core_info = pqos_cpu_get_core_info(cpu_info, lcores[n]);
+                        if (core_info == NULL) {
+                                printf("Error retrieving information "
+                                       "for core %u!\n", lcores[n]);
+                                free(lcores);
+                                return;
+                        }
+
+                        print_core_assoc((cap_l3ca != NULL) ||
+                                         (cap_l2ca != NULL) /* is_alloc */,
+                                         (cap_l3ca != NULL) /* is_l3cat */,
+                                         (cap_mon != NULL) /* is_mon */,
+                                         core_info);
+                }
+                free(lcores);
+        }
+        if (sel_interface == PQOS_INTER_OS) {
+                unsigned max_cos = UINT_MAX;
+
+                if (cap_l2ca != NULL)
+                        max_cos = max_cos < cap_l2ca->u.l2ca->num_classes ?
+                                  max_cos : cap_l2ca->u.l2ca->num_classes;
+                if (cap_l3ca != NULL)
+                        max_cos = max_cos < cap_l3ca->u.l3ca->num_classes ?
+                                  max_cos : cap_l3ca->u.l3ca->num_classes;
+                if (cap_mba != NULL)
+                        max_cos = max_cos < cap_mba->u.mba->num_classes ?
+                                  max_cos : cap_mba->u.mba->num_classes;
+
+                ASSERT(max_cos < UINT_MAX);
+
+                printf("PID association information:\n");
+
+                for (i = !verbose; i < max_cos; i++) {
+                        unsigned *tasks = NULL;
+                        unsigned tcount = 0, j;
+
+                        tasks = pqos_pid_get_pid_assoc(i, &tcount);
+                        if (tasks == NULL) {
+                                printf("Error retrieving PID information!\n");
+                                return;
+                        }
+                        printf("    COS%u => ", i);
+                        if (tcount == 0)
+                                printf("(none)");
+                        for (j = 0; j < tcount; j++)
+                                if (j == 0)
+                                        printf("%u", tasks[j]);
+                                else
+                                        printf(", %u", tasks[j]);
+
+                        printf("\n");
+                        free(tasks);
+                }
+        }
+}
+
 int alloc_apply(const struct pqos_capability *cap_l3ca,
                 const struct pqos_capability *cap_l2ca,
 		const struct pqos_capability *cap_mba,

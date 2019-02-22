@@ -676,6 +676,7 @@ int main(int argc, char **argv)
         unsigned sock_count, *sockets = NULL;
         int cmd, ret, exit_val = EXIT_SUCCESS;
         int opt_index = 0, pid_flag = 0;
+        int vendor;
 
         m_cmd_name = argv[0];
         print_warning();
@@ -844,6 +845,9 @@ int main(int argc, char **argv)
                 }
         }
 
+	/* detect the vendor first */
+	vendor = pqos_detect_vendor();
+
         ret = pqos_init(&cfg);
         if (ret != PQOS_RETVAL_OK) {
                 printf("Error initializing PQoS library!\n");
@@ -927,9 +931,14 @@ int main(int argc, char **argv)
                 /**
                  * Show info about allocation config and exit
                  */
-		alloc_print_config(cap_mon, cap_l3ca, cap_l2ca, cap_mba,
-                                   sock_count, sockets, p_cpu,
-                                   sel_verbose_mode);
+		if (vendor == PQOS_VENDOR_AMD)
+			alloc_print_config_amd(cap_mon, cap_l3ca, cap_l2ca,
+					       cap_mba, sock_count, sockets,
+					       p_cpu, sel_verbose_mode);
+		else
+			alloc_print_config(cap_mon, cap_l3ca, cap_l2ca, cap_mba,
+					   sock_count, sockets, p_cpu,
+					   sel_verbose_mode);
                 goto allocation_exit;
         }
 
