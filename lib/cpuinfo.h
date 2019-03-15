@@ -47,6 +47,21 @@ extern "C" {
 #endif
 
 /**
+ * Extern variables to provide vendor information
+ */
+extern int genuine_intel;
+extern int authentic_amd;
+
+/**
+ * @brief returns the vendor
+ *
+ * @return Operation status
+ * @retval 0 success
+ * @retval -EFAULT vendor unknown
+ */
+int detect_vendor(void);
+
+/**
  * @brief Initializes CPU information module
  *
  * CPU topology detection method is OS dependent.

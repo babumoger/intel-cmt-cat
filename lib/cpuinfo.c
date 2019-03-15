@@ -61,6 +61,12 @@
 #include "os_cap.h"
 
 /**
+ * This variables will hold the information about the vendor
+ */
+int genuine_intel = 0;
+int authentic_amd = 0;
+
+/**
  * This structure will be made externally available
  * If not NULL then module is initialized.
  */
@@ -485,6 +491,33 @@ cpuinfo_build_topo(void)
         }
 
         return l_cpu;
+}
+
+/**
+ * @brief Detects the vendor
+ * Sets the vendor identification
+ * sets genuine_intel if vendor is Intel
+ * sets authentic_amd if vendor is AMD
+ *
+ * @return 0 on success
+ * @ret -EFAULT on error
+ */
+int detect_vendor(void)
+{
+        int ret = 0;
+        struct cpuid_out vendor;
+
+        lcpuid(0x0, 0x0, &vendor);
+        if (vendor.ebx == 0x756e6547 && vendor.edx == 0x49656e69 &&
+            vendor.ecx == 0x6c65746e) {
+                genuine_intel = 1;
+        } else if (vendor.ebx == 0x68747541 && vendor.edx == 0x69746E65 &&
+                   vendor.ecx ==   0x444D4163) {
+                authentic_amd = 1;
+        } else {
+                ret = -EFAULT;
+        }
+        return ret;
 }
 
 /**

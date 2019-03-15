@@ -1210,6 +1210,28 @@ pqos_l2ca_cdp_enabled(const struct pqos_cap *cap,
 int pqos_mba_ctrl_enabled(const struct pqos_cap *cap, int *ctrl_supported,
                           int *ctrl_enabled);
 
+/*
+ * =======================================
+ * Vendor values
+ * =======================================
+ */
+enum pqos_vendor {
+        PQOS_VENDOR_INTEL         = 0,  /**< INTEL */
+        PQOS_VENDOR_AMD           = 1,  /**< AMD */
+        PQOS_VENDOR_UNKNOWN       = 2   /**< UNKNOWN */
+};
+/**
+ * @brief returns the vendor
+ *
+ * @return Operations status
+ * @retval PQOS_RETVAL_OK on success
+ *
+ * @return 0 if the vendor is Intel
+ * @return 1 if the vendor is AMD
+ * @retval 2 if vendor unknown
+ */
+int pqos_get_vendor(void);
+
 /**
  * @brief Retrieves a monitoring value from a group for a specific event.
  * @param [out] value monitoring value

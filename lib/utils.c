@@ -47,6 +47,7 @@
 #include "pqos.h"
 #include "types.h"
 #include "utils.h"
+#include "cpuinfo.h"
 
 #define TOPO_OBJ_SOCKET     0
 #define TOPO_OBJ_L2_CLUSTER 2
@@ -584,4 +585,17 @@ pqos_mba_ctrl_enabled(const struct pqos_cap *cap,
                 *ctrl_enabled = mba_cap->u.mba->ctrl_on;
 
         return PQOS_RETVAL_OK;
+}
+
+int
+pqos_get_vendor(void)
+{
+        int ret = PQOS_VENDOR_UNKNOWN;
+
+	if (genuine_intel)
+                ret = PQOS_VENDOR_INTEL;
+	else if (authentic_amd)
+                ret = PQOS_VENDOR_AMD;
+
+        return ret;
 }
