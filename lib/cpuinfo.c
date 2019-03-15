@@ -386,6 +386,18 @@ detect_cpu(const int cpu,
         info->l3_id = apicid >> apic->l3_shift;
         info->l2_id = apicid >> apic->l2_shift;
 
+	/*
+	 * The schemata resource boundary could be different than the
+	 * socket id in some cases. Schemata mask identifier in Intel
+	 * for CAT and MBA is socket id. AMD uses l3_id to modify the
+	 * schemata masks. Look at the link for more details.
+	 * https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt
+	 * Add l3cat_id and mba_id to differenciate these identifiers.
+	 */
+
+        info->l3cat_id = info->socket;
+        info->mba_id = info->socket;
+
         LOG_DEBUG("Detected core %u, socket %u, "
                   "L2 ID %u, L3 ID %u, APICID %u\n",
                   info->lcore, info->socket,
