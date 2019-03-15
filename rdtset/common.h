@@ -53,6 +53,12 @@ extern "C" {
  */
 #define RDT_MAX_MBA	100
 
+/**
+ * MBA max value for AMD. This should be equavalent
+ * to PQOS_MBA_LINEAR_MAX_AMD
+ */
+#define RDT_MAX_MBA_AMD	0x800
+
 #ifndef MIN
 /**
  * Macro to return the minimum of two numbers
