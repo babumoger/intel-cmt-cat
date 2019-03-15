@@ -43,6 +43,7 @@
 #include "types.h"
 #include "cap.h"
 #include "resctrl_alloc.h"
+#include "cpu_registers.h"
 
 /**
  * ---------------------------------------
