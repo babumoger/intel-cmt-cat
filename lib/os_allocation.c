@@ -1448,14 +1448,14 @@ os_l2ca_get_min_cbm_bits(unsigned *min_cbm_bits)
 }
 
 int
-os_mba_set(const unsigned socket,
+os_mba_set(const unsigned mba_id,
            const unsigned num_cos,
            const struct pqos_mba *requested,
            struct pqos_mba *actual)
 {
 	int ret;
-	unsigned sockets_num = 0;
-	unsigned *sockets = NULL;
+	unsigned mba_id_num = 0;
+	unsigned *mba_ids = NULL;
 	unsigned i, step = 0;
 	unsigned num_grps = 0;
         const struct pqos_cap *cap;
@@ -1493,9 +1493,9 @@ os_mba_set(const unsigned socket,
 			return PQOS_RETVAL_PARAM;
 		}
 
-	/* Get number of sockets in the system */
-	sockets = pqos_cpu_get_sockets(m_cpu, &sockets_num);
-	if (sockets == NULL || sockets_num == 0 || socket >= sockets_num) {
+	/* Get number of mba_ids in the system */
+	mba_ids = pqos_cpu_get_mba_ids(m_cpu, &mba_id_num);
+	if (mba_ids == NULL || mba_id_num == 0 || mba_id >= mba_id_num) {
 		ret = PQOS_RETVAL_ERROR;
 		goto os_mba_set_exit;
 	}
@@ -1531,7 +1531,7 @@ os_mba_set(const unsigned socket,
 
 		/* update and write schemata */
 		if (ret == PQOS_RETVAL_OK) {
-			struct pqos_mba *mba = &(schmt.mba[socket]);
+			struct pqos_mba *mba = &(schmt.mba[mba_id]);
 
 			*mba = requested[i];
 
@@ -1554,7 +1554,7 @@ os_mba_set(const unsigned socket,
 
 			/* update actual schemata */
 			if (ret == PQOS_RETVAL_OK)
-				actual[i] = schmt.mba[socket];
+				actual[i] = schmt.mba[mba_id];
 		}
 		resctrl_alloc_schemata_fini(&schmt);
 
@@ -1566,14 +1566,14 @@ os_mba_set(const unsigned socket,
         resctrl_lock_release();
 
  os_mba_set_exit:
-	if (sockets != NULL)
-		free(sockets);
+	if (mba_ids != NULL)
+		free(mba_ids);
 
 	return ret;
 }
 
 int
-os_mba_get(const unsigned socket,
+os_mba_get(const unsigned mba_id,
            const unsigned max_num_cos,
            unsigned *num_cos,
            struct pqos_mba *mba_tab)
@@ -1581,8 +1581,8 @@ os_mba_get(const unsigned socket,
 	int ret;
 	unsigned class_id;
 	unsigned count = 0;
-	unsigned sockets_num = 0;
-	unsigned *sockets = NULL;
+	unsigned mba_id_num = 0;
+	unsigned *mba_ids = NULL;
         const struct pqos_cap *cap;
         const struct pqos_cpuinfo *cpu;
 	const struct pqos_capability *mba_cap = NULL;
@@ -1607,8 +1607,8 @@ os_mba_get(const unsigned socket,
 	if (count > max_num_cos)
 		return PQOS_RETVAL_ERROR;
 
-	sockets = pqos_cpu_get_sockets(cpu, &sockets_num);
-	if (sockets == NULL || sockets_num == 0 || socket >= sockets_num) {
+	mba_ids = pqos_cpu_get_mba_ids(cpu, &mba_id_num);
+	if (mba_ids == NULL || mba_id_num == 0 || mba_id >= mba_id_num) {
 		ret = PQOS_RETVAL_ERROR;
 		goto os_mba_get_exit;
 	}
@@ -1625,7 +1625,7 @@ os_mba_get(const unsigned socket,
 			ret = resctrl_alloc_schemata_read(class_id, &schmt);
 
 		if (ret == PQOS_RETVAL_OK)
-			mba_tab[class_id] = schmt.mba[socket];
+			mba_tab[class_id] = schmt.mba[mba_id];
 
 		resctrl_alloc_schemata_fini(&schmt);
 
@@ -1638,8 +1638,8 @@ os_mba_get(const unsigned socket,
         resctrl_lock_release();
 
  os_mba_get_exit:
-	if (sockets != NULL)
-		free(sockets);
+	if (mba_ids != NULL)
+		free(mba_ids);
 
 	return ret;
 }

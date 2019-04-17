@@ -373,16 +373,16 @@ resctrl_alloc_schemata_init(const unsigned class_id,
 	/* MBA */
 	retval = pqos_mba_get_cos_num(cap, &num_cos);
 	if (retval == PQOS_RETVAL_OK && class_id < num_cos) {
-		unsigned *sockets = NULL;
+		unsigned *mba_ids = NULL;
 		int ctrl_enabled;
 
-		sockets = pqos_cpu_get_sockets(cpu, &num_ids);
-		if (sockets == NULL) {
+		mba_ids = pqos_cpu_get_mba_ids(cpu, &num_ids);
+		if (mba_ids == NULL) {
 			ret = PQOS_RETVAL_ERROR;
 			goto resctrl_alloc_schemata_init_exit;
 		}
 
-		free(sockets);
+		free(mba_ids);
 
 		schemata->mba_num = num_ids;
 		schemata->mba = calloc(num_ids, sizeof(struct pqos_mba));
