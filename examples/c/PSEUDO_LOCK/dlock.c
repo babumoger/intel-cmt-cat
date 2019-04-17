@@ -178,8 +178,8 @@ int dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
 	const struct pqos_cpuinfo *p_cpu = NULL;
 	const struct pqos_cap *p_cap = NULL;
         const struct pqos_capability *p_l3ca_cap = NULL;
-        unsigned *sockets = NULL;
-        unsigned socket_count = 0, i = 0;
+        unsigned *l3cat_ids = NULL;
+        unsigned l3cat_id_count = 0, i = 0;
         int ret = 0, res = 0;
         size_t num_cache_ways = 0;
         unsigned clos_save = 0;
@@ -267,10 +267,10 @@ int dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
 	}
 
         /**
-         * Retrieve list of CPU sockets
+         * Retrieve list of CPU l3cat_ids
          */
-	sockets = pqos_cpu_get_sockets(p_cpu, &socket_count);
-	if (sockets == NULL) {
+	l3cat_ids = pqos_cpu_get_l3cat_ids(p_cpu, &l3cat_id_count);
+	if (l3cat_ids == NULL) {
 		ret = -6;
 		goto dlock_init_error2;
 	}
@@ -299,11 +299,11 @@ int dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
          */
         m_num_clos = p_l3ca_cap->u.l3ca->num_classes;
 
-        for (i = 0; i < socket_count; i++) {
+        for (i = 0; i < l3cat_id_count; i++) {
                 /**
                  * This would be enough to run the below code for the socket
                  * corresponding to \a cpuid. Yet it is safer to keep CLOS
-                 * definitions coherent across sockets.
+                 * definitions coherent across l3cat_ids.
                  */
                 const uint64_t dlock_mask = (1ULL << num_cache_ways) - 1ULL;
 
@@ -311,8 +311,8 @@ int dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
                 struct pqos_l3ca cos[m_num_clos];
                 unsigned num = 0, j;
 
-                /* get current CAT classes on this socket */
-                res = pqos_l3ca_get(sockets[i], m_num_clos, &num, &cos[0]);
+                /* get current CAT classes on this l3cat_ids */
+                res = pqos_l3ca_get(l3cat_ids[i], m_num_clos, &num, &cos[0]);
                 if (res != PQOS_RETVAL_OK) {
                         printf("pqos_l3ca_get() error!\n");
                         ret = -9;
@@ -327,7 +327,7 @@ int dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
                 }
 
                 /* save CAT classes to restore it later */
-                m_socket_cos[i].id = sockets[i];
+                m_socket_cos[i].id = l3cat_ids[i];
                 m_socket_cos[i].cos_tab = malloc(m_num_clos * sizeof(cos[0]));
                 if (m_socket_cos[i].cos_tab == NULL) {
                         printf("malloc() error!\n");
@@ -362,7 +362,7 @@ int dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
                         }
                 }
 
-                res = pqos_l3ca_set(sockets[i], m_num_clos, &cos[0]);
+                res = pqos_l3ca_set(l3cat_ids[i], m_num_clos, &cos[0]);
                 if (res != PQOS_RETVAL_OK) {
                         printf("pqos_l3ca_set() error!\n");
                         ret = -10;
@@ -439,8 +439,8 @@ int dlock_init(void *ptr, const size_t size, const int clos, const int cpuid)
                 m_is_chunk_allocated = 0;
         }
 
-        if (sockets != NULL)
-                free(sockets);
+        if (l3cat_ids != NULL)
+                free(l3cat_ids);
 
         return ret;
 }

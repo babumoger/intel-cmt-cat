@@ -341,16 +341,16 @@ resctrl_alloc_schemata_init(const unsigned class_id,
 	/* L3 */
 	retval = pqos_l3ca_get_cos_num(cap, &num_cos);
 	if (retval == PQOS_RETVAL_OK && class_id < num_cos) {
-		unsigned *sockets = NULL;
+		unsigned *l3cat_ids = NULL;
 		int cdp_enabled;
 
-		sockets = pqos_cpu_get_sockets(cpu, &num_ids);
-		if (sockets == NULL) {
+		l3cat_ids = pqos_cpu_get_l3cat_ids(cpu, &num_ids);
+		if (l3cat_ids == NULL) {
 			ret = PQOS_RETVAL_ERROR;
 			goto resctrl_alloc_schemata_init_exit;
 		}
 
-		free(sockets);
+		free(l3cat_ids);
 
 		schemata->l3ca_num = num_ids;
 		schemata->l3ca = calloc(num_ids, sizeof(struct pqos_l3ca));

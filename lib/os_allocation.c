@@ -1027,13 +1027,13 @@ os_alloc_reset(const enum pqos_cdp_config l3_cdp_cfg,
 }
 
 int
-os_l3ca_set(const unsigned socket,
+os_l3ca_set(const unsigned l3cat_id,
             const unsigned num_cos,
             const struct pqos_l3ca *ca)
 {
 	int ret;
-	unsigned sockets_num = 0;
-	unsigned *sockets = NULL;
+	unsigned l3cat_id_num = 0;
+	unsigned *l3cat_ids = NULL;
 	unsigned i;
 	unsigned num_grps = 0, l3ca_num;
 	int cdp_enabled = 0;
@@ -1056,14 +1056,14 @@ os_l3ca_set(const unsigned socket,
 	if (num_cos > num_grps)
 		return PQOS_RETVAL_ERROR;
 
-	/* Get number of sockets in the system */
-	sockets = pqos_cpu_get_sockets(cpu, &sockets_num);
-	if (sockets == NULL || sockets_num == 0) {
+	/* Get number of l3cat_ids in the system */
+	l3cat_ids = pqos_cpu_get_l3cat_ids(cpu, &l3cat_id_num);
+	if (l3cat_ids == NULL || l3cat_id_num == 0) {
 		ret = PQOS_RETVAL_ERROR;
 		goto os_l3ca_set_exit;
 	}
 
-	if (socket >= sockets_num) {
+	if (l3cat_id >= l3cat_id_num) {
 		ret = PQOS_RETVAL_PARAM;
 		goto os_l3ca_set_exit;
 	}
@@ -1096,7 +1096,7 @@ os_l3ca_set(const unsigned socket,
 
 		/* update and write schemata */
 		if (ret == PQOS_RETVAL_OK) {
-			struct pqos_l3ca *l3ca = &(schmt.l3ca[socket]);
+			struct pqos_l3ca *l3ca = &(schmt.l3ca[l3cat_id]);
 
 			if (cdp_enabled == 1 && ca[i].cdp == 0) {
 				l3ca->cdp = 1;
@@ -1119,14 +1119,14 @@ os_l3ca_set(const unsigned socket,
         resctrl_lock_release();
 
  os_l3ca_set_exit:
-	if (sockets != NULL)
-		free(sockets);
+	if (l3cat_ids != NULL)
+		free(l3cat_ids);
 
 	return ret;
 }
 
 int
-os_l3ca_get(const unsigned socket,
+os_l3ca_get(const unsigned l3cat_id,
             const unsigned max_num_ca,
             unsigned *num_ca,
             struct pqos_l3ca *ca)
@@ -1134,8 +1134,8 @@ os_l3ca_get(const unsigned socket,
 	int ret;
 	unsigned class_id;
 	unsigned count = 0;
-	unsigned sockets_num = 0;
-	unsigned *sockets = NULL;
+	unsigned l3cat_id_num = 0;
+	unsigned *l3cat_ids = NULL;
         const struct pqos_cap *cap;
         const struct pqos_cpuinfo *cpu;
 
@@ -1156,13 +1156,13 @@ os_l3ca_get(const unsigned socket,
 	if (count > max_num_ca)
 		return PQOS_RETVAL_ERROR;
 
-	sockets = pqos_cpu_get_sockets(cpu, &sockets_num);
-	if (sockets == NULL || sockets_num == 0) {
+	l3cat_ids = pqos_cpu_get_l3cat_ids(cpu, &l3cat_id_num);
+	if (l3cat_ids == NULL || l3cat_id_num == 0) {
 		ret = PQOS_RETVAL_ERROR;
 		goto os_l3ca_get_exit;
 	}
 
-	if (socket >= sockets_num) {
+	if (l3cat_id >= l3cat_id_num) {
 		ret = PQOS_RETVAL_PARAM;
 		goto os_l3ca_get_exit;
 	}
@@ -1179,7 +1179,7 @@ os_l3ca_get(const unsigned socket,
 			ret = resctrl_alloc_schemata_read(class_id, &schmt);
 
 		if (ret == PQOS_RETVAL_OK)
-			ca[class_id] = schmt.l3ca[socket];
+			ca[class_id] = schmt.l3ca[l3cat_id];
 
 		resctrl_alloc_schemata_fini(&schmt);
 
@@ -1192,8 +1192,8 @@ os_l3ca_get(const unsigned socket,
         resctrl_lock_release();
 
  os_l3ca_get_exit:
-	if (sockets != NULL)
-		free(sockets);
+	if (l3cat_ids != NULL)
+		free(l3cat_ids);
 
 	return ret;
 }
