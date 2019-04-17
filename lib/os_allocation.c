@@ -1573,6 +1573,125 @@ os_mba_set(const unsigned mba_id,
 }
 
 int
+os_mba_set_amd(const unsigned mba_id,
+	       const unsigned num_cos,
+	       const struct pqos_mba *requested,
+	       struct pqos_mba *actual)
+{
+	int ret;
+	unsigned mba_id_num = 0;
+	unsigned *mba_ids = NULL;
+	unsigned i;
+	unsigned num_grps = 0;
+        const struct pqos_cap *cap;
+        const struct pqos_cpuinfo *cpu;
+	const struct pqos_capability *mba_cap = NULL;
+
+	ASSERT(requested != NULL);
+	ASSERT(num_cos != 0);
+
+        _pqos_cap_get(&cap, &cpu);
+
+	/**
+	 * Check if MBA is supported
+	 */
+	ret = pqos_cap_get_type(cap, PQOS_CAP_TYPE_MBA, &mba_cap);
+	if (ret != PQOS_RETVAL_OK)
+		return PQOS_RETVAL_RESOURCE; /* MBA not supported */
+
+	ret = resctrl_alloc_get_grps_num(cap, &num_grps);
+	if (ret != PQOS_RETVAL_OK)
+		return ret;
+
+	if (num_cos > num_grps)
+		return PQOS_RETVAL_PARAM;
+
+        /**
+	 * Check if class id's are within allowed range.
+	 */
+	for (i = 0; i < num_cos; i++)
+		if (requested[i].class_id >= num_grps) {
+			LOG_ERROR("MBA COS%u is out of range (COS%u is max)!\n",
+			          requested[i].class_id, num_grps - 1);
+			return PQOS_RETVAL_PARAM;
+		}
+
+	/* Get number of mba_ids in the system */
+	mba_ids = pqos_cpu_get_mba_ids(m_cpu, &mba_id_num);
+	if (mba_ids == NULL || mba_id_num == 0 || mba_id >= mba_id_num) {
+		ret = PQOS_RETVAL_ERROR;
+		goto os_mba_set_exit;
+	}
+
+        ret = resctrl_lock_exclusive();
+        if (ret != PQOS_RETVAL_OK)
+                goto os_mba_set_exit;
+
+	for (i = 0; i < num_cos; i++) {
+		struct resctrl_alloc_schemata schmt;
+
+		if (mba_cap->u.mba->ctrl_on == 0 && requested[i].ctrl) {
+			LOG_ERROR("MBA controller requested but"
+			          " not enabled!\n");
+			ret = PQOS_RETVAL_PARAM;
+			goto os_mba_set_unlock;
+		}
+
+		if (mba_cap->u.mba->ctrl_on == 1 && !requested[i].ctrl) {
+			LOG_ERROR("Expected MBA controller but"
+			          " not requested!\n");
+			ret = PQOS_RETVAL_PARAM;
+			goto os_mba_set_unlock;
+		}
+
+		ret = resctrl_alloc_schemata_init(requested[i].class_id,
+		                                  cap, cpu, &schmt);
+
+		/* read schemata file */
+		if (ret == PQOS_RETVAL_OK)
+			ret = resctrl_alloc_schemata_read(requested[i].class_id,
+				                          &schmt);
+
+		/* update and write schemata */
+		if (ret == PQOS_RETVAL_OK) {
+			struct pqos_mba *mba = &(schmt.mba[mba_id]);
+
+			*mba = requested[i];
+
+			if (mba->ctrl == 0)
+                                mba->mb_max = requested[i].mb_max;
+
+                        ret = resctrl_alloc_schemata_write(
+                                requested[i].class_id, &schmt);
+		}
+
+		if (actual != NULL) {
+			/* read actual schemata */
+			if (ret == PQOS_RETVAL_OK)
+				ret = resctrl_alloc_schemata_read(
+					requested[i].class_id, &schmt);
+
+			/* update actual schemata */
+			if (ret == PQOS_RETVAL_OK)
+				actual[i] = schmt.mba[mba_id];
+		}
+		resctrl_alloc_schemata_fini(&schmt);
+
+		if (ret != PQOS_RETVAL_OK)
+			goto os_mba_set_unlock;
+	}
+
+ os_mba_set_unlock:
+        resctrl_lock_release();
+
+ os_mba_set_exit:
+	if (mba_ids != NULL)
+		free(mba_ids);
+
+	return ret;
+}
+
+int
 os_mba_get(const unsigned mba_id,
            const unsigned max_num_cos,
            unsigned *num_cos,
