@@ -1645,6 +1645,78 @@ os_mba_get(const unsigned mba_id,
 }
 
 int
+os_mba_get_amd(const unsigned mba_id,
+	       const unsigned max_num_cos,
+	       unsigned *num_cos,
+	       struct pqos_mba *mba_tab)
+{
+	int ret;
+	unsigned class_id;
+	unsigned count = 0;
+	unsigned mba_id_num = 0;
+	unsigned *mba_ids = NULL;
+        const struct pqos_cap *cap;
+        const struct pqos_cpuinfo *cpu;
+	const struct pqos_capability *mba_cap = NULL;
+
+	ASSERT(num_cos != NULL);
+	ASSERT(max_num_cos != 0);
+	ASSERT(mba_tab != NULL);
+
+        _pqos_cap_get(&cap, &cpu);
+
+	/**
+	 * Check if MBA is supported
+	 */
+	ret = pqos_cap_get_type(cap, PQOS_CAP_TYPE_MBA, &mba_cap);
+	if (ret != PQOS_RETVAL_OK)
+		return PQOS_RETVAL_RESOURCE; /* MBA not supported */
+
+	ret = resctrl_alloc_get_grps_num(cap, &count);
+	if (ret != PQOS_RETVAL_OK)
+		return ret;
+
+	if (count > max_num_cos)
+		return PQOS_RETVAL_ERROR;
+
+	mba_ids = pqos_cpu_get_mba_ids(cpu, &mba_id_num);
+	if (mba_ids == NULL || mba_id_num == 0 || mba_id >= mba_id_num) {
+		ret = PQOS_RETVAL_ERROR;
+		goto os_mba_get_exit;
+	}
+
+        ret = resctrl_lock_shared();
+        if (ret != PQOS_RETVAL_OK)
+                goto os_mba_get_exit;
+
+	for (class_id = 0; class_id < count; class_id++) {
+		struct resctrl_alloc_schemata schmt;
+
+		ret = resctrl_alloc_schemata_init(class_id, cap, cpu, &schmt);
+		if (ret == PQOS_RETVAL_OK)
+			ret = resctrl_alloc_schemata_read(class_id, &schmt);
+
+		if (ret == PQOS_RETVAL_OK)
+			mba_tab[class_id] = schmt.mba[mba_id];
+
+		resctrl_alloc_schemata_fini(&schmt);
+
+		if (ret != PQOS_RETVAL_OK)
+			goto os_mba_get_unlock;
+	}
+	*num_cos = count;
+
+ os_mba_get_unlock:
+        resctrl_lock_release();
+
+ os_mba_get_exit:
+	if (mba_ids != NULL)
+		free(mba_ids);
+
+	return ret;
+}
+
+int
 os_alloc_assoc_set_pid(const pid_t task,
                        const unsigned class_id)
 {
