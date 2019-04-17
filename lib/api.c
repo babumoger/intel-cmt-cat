@@ -771,10 +771,10 @@ pqos_mba_set(const unsigned mba_id,
         }
 
         if (m_interface == PQOS_INTER_MSR)
-                ret = hw_mba_set(mba_id, num_cos, requested, actual);
+                ret = v_def.hw_mba_set(mba_id, num_cos, requested, actual);
         else {
 #ifdef __linux__
-                ret = os_mba_set(mba_id, num_cos, requested, actual);
+                ret = v_def.os_mba_set(mba_id, num_cos, requested, actual);
 #else
                 LOG_INFO("OS interface not supported!\n");
                 ret = PQOS_RETVAL_RESOURCE;
@@ -807,10 +807,10 @@ pqos_mba_get(const unsigned mba_id,
         }
 
         if (m_interface == PQOS_INTER_MSR)
-                ret = hw_mba_get(mba_id, max_num_cos, num_cos, mba_tab);
+                ret = v_def.hw_mba_get(mba_id, max_num_cos, num_cos, mba_tab);
         else {
 #ifdef __linux__
-                ret = os_mba_get(mba_id, max_num_cos, num_cos, mba_tab);
+                ret = v_def.os_mba_get(mba_id, max_num_cos, num_cos, mba_tab);
 #else
                 LOG_INFO("OS interface not supported!\n");
                 ret = PQOS_RETVAL_RESOURCE;
