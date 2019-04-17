@@ -79,7 +79,7 @@ pqos_cpu_get_mba_ids(const struct pqos_cpuinfo *cpu,
         if (cpu == NULL || count == NULL)
                 return NULL;
 
-        mba_ids = (unsigned *) malloc(sizeof(mba_ids[0]) * cpu->num_cores);
+        mba_ids = (unsigned *) calloc(cpu->num_cores, sizeof(mba_ids[0]));
         if (mba_ids == NULL)
                 return NULL;
 
@@ -94,6 +94,10 @@ pqos_cpu_get_mba_ids(const struct pqos_cpuinfo *cpu,
                                 break;
 
                 if (j >= scount || scount == 0) {
+			/* Alloc gaps in resource id */
+                        if (cpu->cores[i].mba_id > scount)
+				scount = cpu->cores[i].mba_id;
+
                         /**
                          * This socket wasn't reported before
                          */
@@ -117,7 +121,7 @@ pqos_cpu_get_l3cat_ids(const struct pqos_cpuinfo *cpu,
         if (cpu == NULL || count == NULL)
                 return NULL;
 
-        l3cat_ids = (unsigned *) malloc(sizeof(l3cat_ids[0]) * cpu->num_cores);
+        l3cat_ids = (unsigned *) calloc(cpu->num_cores, sizeof(l3cat_ids[0]));
         if (l3cat_ids == NULL)
                 return NULL;
 
@@ -132,6 +136,9 @@ pqos_cpu_get_l3cat_ids(const struct pqos_cpuinfo *cpu,
                                 break;
 
                 if (j >= scount || scount == 0) {
+			/* Alloc gaps in resource id */
+                        if (cpu->cores[i].l3cat_id > scount)
+				scount = cpu->cores[i].l3cat_id;
                         /**
                          * This socket wasn't reported before
                          */
@@ -155,7 +162,7 @@ pqos_cpu_get_sockets(const struct pqos_cpuinfo *cpu,
         if (cpu == NULL || count == NULL)
                 return NULL;
 
-        sockets = (unsigned *) malloc(sizeof(sockets[0]) * cpu->num_cores);
+        sockets = (unsigned *) calloc(cpu->num_cores, sizeof(sockets[0]));
         if (sockets == NULL)
                 return NULL;
 
@@ -170,6 +177,9 @@ pqos_cpu_get_sockets(const struct pqos_cpuinfo *cpu,
                                 break;
 
                 if (j >= scount || scount == 0) {
+			/* Alloc gaps in resource id */
+                        if (cpu->cores[i].socket > scount)
+				scount = cpu->cores[i].socket;
                         /**
                          * This socket wasn't reported before
                          */
@@ -193,7 +203,7 @@ pqos_cpu_get_l2ids(const struct pqos_cpuinfo *cpu,
         if (cpu == NULL || count == NULL)
                 return NULL;
 
-        l2ids = (unsigned *) malloc(sizeof(l2ids[0]) * cpu->num_cores);
+        l2ids = (unsigned *) calloc(cpu->num_cores, sizeof(l2ids[0]));
         if (l2ids == NULL)
                 return NULL;
 
@@ -208,6 +218,9 @@ pqos_cpu_get_l2ids(const struct pqos_cpuinfo *cpu,
                                 break;
 
                 if (j >= l2count || l2count == 0) {
+			/* Alloc gaps in resource id */
+                        if (cpu->cores[i].l2_id > l2count)
+				l2count = cpu->cores[i].l2_id;
                         /**
                          * This l2id wasn't reported before
                          */
