@@ -134,6 +134,7 @@ rdt_cfg_get_type_str(const struct rdt_cfg cfg)
 static int
 rdt_cfg_is_valid(const struct rdt_cfg cfg)
 {
+	int vendor = pqos_get_vendor();
 	if (cfg.u.generic_ptr == NULL)
 		return 0;
 
@@ -160,9 +161,9 @@ rdt_cfg_is_valid(const struct rdt_cfg cfg)
 
 	case PQOS_CAP_TYPE_MBA:
 		return cfg.u.mba != NULL && cfg.u.mba->mb_max > 0 &&
-			((cfg.u.mba->ctrl == 0 && cfg.u.mba->mb_max <= RDT_MAX_MBA) ||
-			cfg.u.mba->ctrl == 1);
-
+			((cfg.u.mba->ctrl == 0 && cfg.u.mba->mb_max <=
+			  ((vendor == PQOS_VENDOR_AMD) ?
+			   RDT_MAX_MBA_AMD : RDT_MAX_MBA)) || cfg.u.mba->ctrl == 1);
 	default:
 		break;
 	}
@@ -428,14 +429,15 @@ static int
 rdt_mba_str_to_rate(const char *param, struct rdt_cfg mba)
 {
 	uint64_t rate;
-	int ret;
+	int ret, vendor = pqos_get_vendor();
 
 	if (PQOS_CAP_TYPE_MBA != mba.type || NULL == mba.u.generic_ptr ||
 			NULL == param)
 		return -EINVAL;
 
 	ret = str_to_uint64(param, 10, &rate);
-	if (ret < 0 || rate == 0 || rate > RDT_MAX_MBA)
+	if (ret < 0 || rate == 0 || rate >
+            ((vendor == PQOS_VENDOR_AMD) ? RDT_MAX_MBA_AMD : RDT_MAX_MBA))
 		return -EINVAL;
 
 	mba.u.mba->ctrl = 0;
@@ -1215,6 +1217,8 @@ static int
 alloc_get_default_cos(struct pqos_l2ca *l2_def, struct pqos_l3ca *l3_def,
                     struct pqos_mba *mba_def)
 {
+	int vendor = pqos_get_vendor();
+
 	if (l2_def == NULL && l3_def == NULL && mba_def == NULL)
 		return -EINVAL;
 
@@ -1255,7 +1259,8 @@ alloc_get_default_cos(struct pqos_l2ca *l2_def, struct pqos_l3ca *l3_def,
 			mba_def->ctrl = 1;
 			mba_def->mb_max = UINT32_MAX;
 		} else
-			mba_def->mb_max = RDT_MAX_MBA;
+			mba_def->mb_max = (vendor == PQOS_VENDOR_AMD) ?
+					RDT_MAX_MBA_AMD : RDT_MAX_MBA;
 	}
 
 	return 0;
@@ -1283,7 +1288,7 @@ cfg_configure_cos(const struct pqos_l2ca *l2ca, const struct pqos_l3ca *l3ca,
 	struct pqos_l3ca l3_defs;
 	struct pqos_mba mba_defs;
 	const struct pqos_coreinfo *ci = NULL;
-	int ret;
+	int ret, vendor = pqos_get_vendor();
 
 	if (NULL == l2ca || NULL == l3ca || NULL == mba)
 		return -EINVAL;
@@ -1353,7 +1358,8 @@ cfg_configure_cos(const struct pqos_l2ca *l2ca, const struct pqos_l3ca *l3ca,
 		if (!rdt_cfg_is_valid(wrap_mba(&mba_requested)))
 			mba_requested = mba_defs;
 		else if (mba_sc_mode()) {
-			mba_requested.mb_max = RDT_MAX_MBA;
+			mba_requested.mb_max = (vendor == PQOS_VENDOR_AMD) ?
+				               RDT_MAX_MBA_AMD : RDT_MAX_MBA;
 			mba_requested.ctrl = 0;
 		}
 
