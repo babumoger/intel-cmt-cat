@@ -407,8 +407,13 @@ detect_cpu(const int cpu,
 	 * the future.
 	 */
 
-        info->l3cat_id = info->socket;
-        info->mba_id = info->socket;
+	if (pqos_get_vendor() == PQOS_VENDOR_AMD) {
+		info->l3cat_id = info->l3_id;
+		info->mba_id = info->l3_id;
+	} else {
+		info->l3cat_id = info->socket;
+		info->mba_id = info->socket;
+	}
 
         LOG_DEBUG("Detected core %u, socket %u, "
                   "L2 ID %u, L3 ID %u, APICID %u\n",
@@ -513,14 +518,32 @@ int detect_vendor(void)
 int
 init_functions(struct pqos_vendor_config *ptr)
 {
+	enum pqos_vendor vendor = pqos_get_vendor();
 
-	ptr->cpuid_cache_leaf = 4;
-	ptr->mba_max = PQOS_MBA_LINEAR_MAX;
-	ptr->mba_msr_reg = PQOS_MSR_MBA_MASK_START;
-	ptr->hw_mba_get = hw_mba_get;
-	ptr->hw_mba_set = hw_mba_set;
-	ptr->os_mba_get = os_mba_get;
-	ptr->os_mba_set = os_mba_set;
+	/**
+	 * Make sure to initialize all the pointers to avoid
+	 * NULL check while calling
+	 */
+	if (vendor == PQOS_VENDOR_INTEL) {
+		ptr->cpuid_cache_leaf = 4;
+		ptr->mba_max = PQOS_MBA_LINEAR_MAX;
+		ptr->mba_msr_reg = PQOS_MSR_MBA_MASK_START;
+		ptr->hw_mba_get = hw_mba_get;
+		ptr->hw_mba_set = hw_mba_set;
+		ptr->os_mba_get = os_mba_get;
+		ptr->os_mba_set = os_mba_set;
+	} else if (vendor == PQOS_VENDOR_AMD) {
+		ptr->cpuid_cache_leaf = 0x8000001D;
+		ptr->mba_max = PQOS_MBA_MAX_AMD;
+		ptr->mba_msr_reg = PQOS_MSR_MBA_MASK_START_AMD;
+		ptr->hw_mba_get = hw_mba_get_amd;
+		ptr->hw_mba_set = hw_mba_set_amd;
+		ptr->os_mba_get = os_mba_get_amd;
+		ptr->os_mba_set = os_mba_set_amd;
+	} else {
+                LOG_ERROR("init_pointers: init failed!");
+                return -EFAULT;
+	}
 
 	return 0;
 }
