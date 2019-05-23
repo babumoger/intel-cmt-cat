@@ -1562,7 +1562,7 @@ cfg_set_pids(const unsigned technology, const struct pqos_l3ca *l3ca,
                 if (technology & (1 << PQOS_CAP_TYPE_L2CA))
                         ret = pqos_cpu_get_one_by_l2id(m_cpu, i, &core);
                 else
-                        ret = pqos_cpu_get_one_core(m_cpu, i, &core);
+                        ret = pqos_cpu_get_one_by_l3cat_id(m_cpu, i, &core);
                 if (ret != 0)
                         break;
 
