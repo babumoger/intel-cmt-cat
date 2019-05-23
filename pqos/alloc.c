@@ -1057,13 +1057,18 @@ void alloc_print_config(const struct pqos_capability *cap_mon,
                         const struct pqos_capability *cap_l3ca,
                         const struct pqos_capability *cap_l2ca,
                         const struct pqos_capability *cap_mba,
-                        const unsigned sock_count,
-                        const unsigned *sockets,
                         const struct pqos_cpuinfo *cpu_info,
                         const int verbose)
 {
         int ret;
         unsigned i;
+	unsigned sock_count, *sockets = NULL;
+
+	sockets = pqos_cpu_get_sockets(cpu_info, &sock_count);
+	if (sockets == NULL) {
+		printf("Error retrieving information for Sockets\n");
+		return;
+	}
 
         print_per_socket_config(cap_l3ca, cap_mba, sock_count, sockets);
 
@@ -1127,6 +1132,10 @@ void alloc_print_config(const struct pqos_capability *cap_mon,
                 }
                 free(lcores);
         }
+
+	if (sockets)
+		free(sockets);
+
         if (sel_interface == PQOS_INTER_OS) {
                 unsigned max_cos = UINT_MAX;
 
