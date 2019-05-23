@@ -47,6 +47,7 @@
 #include "pqos.h"
 #include "types.h"
 #include "utils.h"
+#include "cpuinfo.h"
 
 #define TOPO_OBJ_SOCKET     0
 #define TOPO_OBJ_L2_CLUSTER 2
@@ -696,4 +697,10 @@ pqos_mba_ctrl_enabled(const struct pqos_cap *cap,
                 *ctrl_enabled = mba_cap->u.mba->ctrl_on;
 
         return PQOS_RETVAL_OK;
+}
+
+enum pqos_vendor
+pqos_get_vendor(void)
+{
+	return cpu_vendor;
 }
