@@ -1011,6 +1011,80 @@ print_per_socket_config(const struct pqos_capability *cap_l3ca,
 }
 
 /**
+ * @brief Per l3id CAT and MBA class definition printing
+ *
+ * If new per l3id technologies appear they should be added here, too.
+ *
+ * @param [in] cap_l3ca pointer to L3 CAT capability structure
+ * @param [in] cap_mba pointer to MBA capability structure
+ * @param [in] l3cat_id_count number of l3cat_id's in \a system
+ * @param [in] l3cat_ids arrays of l3cat id's
+ */
+static void
+print_per_l3cat_id_config(const struct pqos_capability *cap_l3ca,
+			  const struct pqos_capability *cap_mba,
+			  const unsigned l3cat_id_count,
+			  const unsigned *l3cat_ids)
+{
+        int ret;
+        unsigned i;
+
+        if (cap_l3ca == NULL && cap_mba == NULL)
+                return;
+
+        for (i = 0; i < l3cat_id_count; i++) {
+
+                printf("%s%s%s COS definitions for L3 CAT ID %u:\n",
+                       cap_l3ca != NULL ? "L3CA" : "",
+                       (cap_l3ca != NULL && cap_mba != NULL) ? "/" : "",
+                       cap_mba != NULL ? "MBA" : "",
+                       l3cat_ids[i]);
+
+                if (cap_l3ca != NULL) {
+                        const struct pqos_cap_l3ca *l3ca = cap_l3ca->u.l3ca;
+                        struct pqos_l3ca tab[l3ca->num_classes];
+                        unsigned num = 0;
+                        unsigned n = 0;
+
+                        ret = pqos_l3ca_get(l3cat_ids[i], l3ca->num_classes,
+                                            &num, tab);
+                        if (ret != PQOS_RETVAL_OK)
+                                num = l3ca->num_classes;
+
+                        for (n = 0; n < num; n++)
+                                print_l3ca_config(&tab[n],
+                                                  (ret != PQOS_RETVAL_OK));
+                }
+
+                if (cap_mba != NULL) {
+                        const struct pqos_cap_mba *mba = cap_mba->u.mba;
+                        struct pqos_mba tab[mba->num_classes];
+                        unsigned num = 0;
+                        unsigned n = 0;
+                        int ctrl_on = sel_interface != PQOS_INTER_MSR &&
+                                      mba->ctrl_on == 1;
+                        const char *unit = ctrl_on ? " MBps" : "%";
+                        const char *available = ctrl_on ? "" : " available";
+
+                        ret = pqos_mba_get(l3cat_ids[i], mba->num_classes,
+                                           &num, tab);
+                        if (ret != PQOS_RETVAL_OK)
+                                num = mba->num_classes;
+
+                        for (n = 0; n < num; n++) {
+                                if (ret != PQOS_RETVAL_OK)
+                                        printf("    MBA COS%u => ERROR\n",
+                                               tab[n].class_id);
+                                else
+                                        printf("    MBA COS%u => %u%s%s\n",
+                                               tab[n].class_id, tab[n].mb_max,
+                                               unit, available);
+                        }
+                }
+        }
+}
+
+/**
  * @brief Retrieves and prints core association
  *
  * @param [in] is_alloc indicates if any allocation technology is present
@@ -1071,6 +1145,18 @@ void alloc_print_config(const struct pqos_capability *cap_mon,
 	}
 
         print_per_socket_config(cap_l3ca, cap_mba, sock_count, sockets);
+
+	if (pqos_get_vendor() == PQOS_VENDOR_AMD) {
+		unsigned l3cat_id_count, *l3cat_ids = NULL;
+		l3cat_ids = pqos_cpu_get_l3cat_ids(cpu_info, &l3cat_id_count);
+		if (l3cat_ids == NULL) {
+			free(sockets);
+			return;
+		}
+
+		print_per_l3cat_id_config(cap_l3ca, cap_mba, l3cat_id_count, l3cat_ids);
+		free(l3cat_ids);
+	}
 
         if (cap_l2ca != NULL) {
                 /* Print L2 CAT class definitions per L2 cluster */
