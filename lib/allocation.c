@@ -216,8 +216,8 @@ get_unused_cos(const unsigned id,
                         if (m_cpu->cores[i].l2_id != id)
                                 continue;
                 } else {
-                        /* L2 not requested so looking at socket scope */
-                        if (m_cpu->cores[i].socket != id)
+                        /* L2 not requested so looking at l3cat_id scope */
+                        if (m_cpu->cores[i].l3cat_id != id)
                                 continue;
                 }
 
@@ -1086,7 +1086,7 @@ hw_alloc_assign(const unsigned technology,
 {
         const int l2_req = ((technology & (1 << PQOS_CAP_TYPE_L2CA)) != 0);
         unsigned i;
-        unsigned socket = 0, l2id = 0;
+        unsigned l3cat_id = 0, l2id = 0;
         int ret;
 
         ASSERT(core_num > 0);
@@ -1114,17 +1114,17 @@ hw_alloc_assign(const unsigned technology,
                         }
                         l2id = pi->l2_id;
                 } else {
-                        if (i != 0 && socket != pi->socket) {
+                        if (i != 0 && l3cat_id != pi->l3cat_id) {
                                 ret = PQOS_RETVAL_PARAM;
                                 goto pqos_alloc_assign_exit;
                         }
-                        socket = pi->socket;
+                        l3cat_id = pi->l3cat_id;
                 }
         }
 
         /* find an unused class from highest down */
         if (!l2_req)
-                ret = get_unused_cos(socket, technology, class_id);
+                ret = get_unused_cos(l3cat_id, technology, class_id);
         else
                 ret = get_unused_cos(l2id, technology, class_id);
 
